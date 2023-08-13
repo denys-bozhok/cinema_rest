@@ -10,104 +10,125 @@ from .serializers import *
 from .models import *
 
 
+def error_bad_status():
+    return Response({"ERROR": "ICORRECT REQUEST"}, status.HTTP_400_BAD_REQUEST)
+
+
+def get_data(amount, some_model, some_serialaizer):
+    match(amount):
+        case "singular":
+            instance = some_model
+            serialized_instance = some_serialaizer(instance).data
+            return Response(serialized_instance, status.HTTP_200_OK)
+        
+        case "plural":
+            instances = some_model.objects.all()
+            serialized_instance_list = some_serialaizer(instances, many=True).data
+            return Response(serialized_instance_list, status.HTTP_200_OK)
+        
+        case _:
+            error_bad_status()
+
+
+def post_data(req, some_model, some_serialaizer):
+    try:
+        some_model.objects.create(**req.data)
+        
+        return Response(some_serialaizer(some_model.objects.all(), many=True).data)
+    
+    except:
+        error_bad_status()
+    
+    
+def put_data(req, arg, some_model, some_serialaizer):
+    try:
+        old_model_object = some_model.objects.get(id=arg)
+        some_serialaizer(old_model_object, data=req.data, partial=False).save
+        
+        return Response(some_serialaizer(some_model.objects.all(), many=True).data)
+    
+    except:
+        error_bad_status()
+        
+        
+def delete_data(arg, some_model, some_serialaizer):
+    try:
+        old_model = some_model.objects.get(id=arg)
+        old_model.delete()
+        
+        return Response(some_serialaizer(some_model.objects.all(), many=True).data)
+    
+    except:
+        error_bad_status()
+    
+    
 class Movies(ViewSet):
     def movies(self, req):
         try:
-
-            movies = Movie.objects.all()
-            serialized_movie_list = SerializedMovie(movies, many=True).data
-            return Response(serialized_movie_list, status.HTTP_200_OK)
+            return get_data('plural', req, Movie, SerializedMovie)
         except:
-            return Response({"msg": "ICORRECT DATA"}, status.HTTP_400_BAD_REQUEST)
+            error_bad_status()
         
     def movie(self, req, arg):
         try:
-            movie = Movie.objects.get(id=arg)
-            serialized_movie = SerializedMovie(movie).data
-            
-            return Response(serialized_movie, status.HTTP_200_OK)
+            return get_data('singular', Movie.objects.get(id=arg), SerializedMovie)
         except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+            error_bad_status()
             
-    def create_movie(self, req, arg):
-        try:
-            
-            return Response({'msg': 'movie was successfuly created!'},
-                            status.HTTP_201_CREATED)
-        except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
-        
+    def create_movie(self, req):
+        return post_data(req, Movie, SerializedMovie)
+
     def delete_movie(self, req, arg):
-        try:
-            return Response({'msg': 'movie was delete!'},status.HTTP_200_OK)
-        except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+        return delete_data(arg, Movie, SerializedMovie)
 
     def put_movie(self, req, arg):
-        try:
-            return Response({'msg': 'movie was huyuting!'},status.HTTP_200_OK)
-        except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
-
+        return put_data(req, arg, Movie, SerializedMovie)
 
 class Tickets(APIView):
     def get(self, req, arg):
         try:
-            ticket = Ticket.objects.get(id=arg)
-            serialized_ticket = SerializedTicket(ticket).data
-            return Response(serialized_ticket, status.HTTP_200_OK)
+            return get_data('singular', Ticket.objects.get(id=arg), SerializedTicket)
         except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+            error_bad_status()
     
-    def post(self, req, arg):
-        try:
-            return Response({'msg': 'Ticket was successfuly added!'},
-                            status.HTTP_201_CREATED)
-        except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+    def post(self, req):
+        return post_data(req, Ticket, SerializedTicket)
     
     def delete(self, req, arg):
-        try:
-            return Response({'msg': 'HUCK YOU!'},status.HTTP_200_OK)
-        except:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+        return delete_data(arg, Ticket, SerializedTicket)
         
         
 @api_view(['GET', 'POST'])
 def users(req):
     if req.method == 'GET':
-        users = User.objects.all()
-        serialized_users = UserSerializer(users, many=True).data
-        return Response(serialized_users,status.HTTP_200_OK)
+        try:
+            return get_data('plural', req, User, UserSerializer)
+        except:
+            error_bad_status()
     
     elif req.method == 'POST':
-        return Response({'msg': 'user was successfuly created!'},
-                        status.HTTP_201_CREATED)
+        return post_data(req, User, UserSerializer)
         
     else:
-        return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+        error_bad_status()
 
 
-@api_view(['GET', 'POST', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'DELETE'])
 def user(req, arg):
     if req.method == 'GET':
-        user = User.objects.get(id=arg)
-        serialized_user = UserSerializer(user).data
-        return Response(serialized_user, status.HTTP_200_OK)
-    
-    elif req.method == 'POST':
-        return Response({'msg': 'user was successfuly created!'},
-                        status.HTTP_201_CREATED)
+        try:
+            return get_data('singular', User.objects.get(id=arg), UserSerializer)
+        except:
+            error_bad_status()
         
     elif req.method == 'PUT':
-        return Response({'msg': 'user`s data was chanched'},
-                        status.HTTP_200_OK)
+        return put_data(req, arg, Movie, SerializedMovie)
         
     elif req.method == 'DELETE':
-        return Response({'msg': 'HUCK YOU!'},status.HTTP_200_OK)
+        return delete_data(arg, User, UserSerializer)
 
     else:
-        return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+        error_bad_status()
 
 
 class Places:
@@ -115,30 +136,28 @@ class Places:
     @api_view(['GET', 'POST'])
     def places(req):     
         if req.method == 'GET':
-            places = Place.objects.all()
-            serialized_places = SerializedPlace(places, many=True).data
-            return Response(serialized_places, status.HTTP_200_OK)
+            try:
+                return get_data('plural', req, Place, SerializedPlace)
+            except:
+                error_bad_status()
         
         elif req.method == 'POST':
-            return Response({'msg': 'place was holder by user!'},
-                            status.HTTP_201_CREATED)
+            return post_data(req, Place, SerializedPlace)
+        
         else:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+            error_bad_status()
             
     @staticmethod
-    @api_view(['GET', 'POST', 'DELETE'])
+    @api_view(['GET', 'DELETE'])
     def place(req, arg):     
         if req.method == 'GET':
-            place = Place.objects.get(id=arg)
-            serialized_place = SerializedPlace(place, many=True).data
-            return Response(serialized_place, status.HTTP_200_OK)
-        
-        elif req.method == 'POST':
-            return Response({'msg': 'place was holder by user!'},
-                            status.HTTP_201_CREATED)
+            try:
+                return get_data('singular', Place.objects.get(id=arg), SerializedPlace)
+            except:
+                error_bad_status()
             
         elif req.method == 'DELETE':
-            return Response({'msg': 'HUCK YOU!'},status.HTTP_200_OK)
+            return delete_data(arg, Place, SerializedPlace)
         
         else:
-            return Response({"msg": "ICORRECT DATA"},status.HTTP_400_BAD_REQUEST)
+            error_bad_status()

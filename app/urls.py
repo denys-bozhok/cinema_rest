@@ -10,7 +10,6 @@ urlpatterns = [
     
     path('movie/<int:arg>', Movies.as_view({
         'get': 'movie',
-        'post': 'create_movie',
         'delete': 'delete_movie',
         'put': 'put_movie'
         })),
