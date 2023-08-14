@@ -15,6 +15,12 @@ def error_bad_status():
     return Response({"ERROR": "ICORRECT REQUEST"}, status.HTTP_400_BAD_REQUEST)
 
 
+def post_data(req, some_model, some_serialaizer):
+    print(req.data)
+    some_model.objects.create(**req.data)
+    return Response(some_serialaizer(some_model.objects.all(), many=True).data)
+
+
 def get_data(amount, some_model, some_serialaizer, arg):
     
     instances = some_model.objects.all()
@@ -24,8 +30,8 @@ def get_data(amount, some_model, some_serialaizer, arg):
                 if instance.id == arg:
                     serialized_instance = some_serialaizer(instance).data
                     return Response(serialized_instance, status.HTTP_200_OK)
-                
-            return error_bad_status()
+            else:
+                return error_bad_status()
         
         case "plural":
 
@@ -36,14 +42,6 @@ def get_data(amount, some_model, some_serialaizer, arg):
             return error_bad_status()
 
 
-def post_data(req, some_model, some_serialaizer):
-    try:
-        some_model.objects.create(**req.data)
-        return Response(some_serialaizer(some_model.objects.all(), many=True).data)
-    except:
-        return error_bad_status()
-    
-        
 def delete_data(arg, some_model, some_serialaizer):
 
     try:
@@ -129,48 +127,47 @@ def user(req, arg):
 
 class Places:
     @staticmethod
-    @api_view(['GET', 'POST'])
+    @api_view(['GET', 'POST',])
     def places(req):     
+        
         if req.method == 'GET':
             return get_data('plural', Place, SerializedPlace, '')
-        
+    
         elif req.method == 'POST':
             
-            ticket = Ticket.objects.all()
-            for t in ticket:
-                if t.id == req.data["ticket_id"]:
-                    req.data["ticket_id"] = ticket
-            
-            arr = Place.objects.all()
-            new_arr = []
-            
-            for i in arr:
-                new_arr.append(i.number)
-            if not req.data['number'] in new_arr:
-                return post_data(req, Place, SerializedPlace)
-            
-            new_arr[:] = list(set(new_arr))
-            
-            x = 0
-            leng = len(new_arr)
-            
-            while x < leng:
-                if new_arr[x+1] == leng and new_arr[x] < 20:
-                    req.data['number'] = (new_arr[x] + 3)
-                    return post_data(req, Place, SerializedPlace)
-                elif new_arr[x] == 20 and new_arr[0] != 1:
-                    req.data['number'] = (new_arr[0] -1 )
-                    return post_data(req, Place, SerializedPlace)
-                elif (new_arr[x]+1) == new_arr[x+1]:
-                    x += 1
-                else:
-                    print(req.data['number'])
-                    return error_bad_status()       
+            try:
+                tickets = Ticket.objects.filter(id=req.data["ticket_id"])
+                req.data['ticket_id'] = tickets[0]
+            except:
+                return error_bad_status()
 
+            hold_places = list(Place.objects.filter(ticket_id=tickets[0].id))
+            
+            list_of_places = ('_,'*20).split(',')
+            list_of_places.pop()
+            print(list_of_places)
+            for place in hold_places:
+                if list_of_places[place.number-1] == '_' :
+                    list_of_places[place.number-1] = place.number
+                else:
+                    return error_bad_status()
+                    
+            if list_of_places[(req.data["number"] - 1 )] == '_':
+                list_of_places[(req.data["number"] - 1 )] = req.data["number"]
+
+            
+            for free_place in list_of_places:
+                if free_place == '_' :
+                    req.data["number"] = list_of_places.index(free_place) + 1
+            
+            print(list_of_places)
+            return post_data(req, Place, SerializedPlace)
+                    
+                    
         else:
             return error_bad_status()
             
-    @staticmethod
+    # @staticmethod
     @api_view(['GET', 'DELETE'])
     def place(req, arg):     
         if req.method == 'GET':

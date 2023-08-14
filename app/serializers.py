@@ -19,7 +19,7 @@ class SerializedTicket(serializers.ModelSerializer):
 class SerializedPlace(serializers.ModelSerializer):
     class Meta:
         model = Place
-        fields = ('ticket_id', 'number')
+        fields = ['ticket_id', 'number']
         
         
 class UserSerializer(serializers.ModelSerializer):
