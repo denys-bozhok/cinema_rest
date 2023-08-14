@@ -167,7 +167,7 @@ class Places:
         else:
             return error_bad_status()
             
-    # @staticmethod
+    @staticmethod
     @api_view(['GET', 'DELETE'])
     def place(req, arg):     
         if req.method == 'GET':
