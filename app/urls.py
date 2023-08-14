@@ -14,8 +14,9 @@ urlpatterns = [
         'put': 'put_movie'
         })),
     
-    path('ticket/<int:arg>', Tickets.as_view()),
-    
+    path('tickets', Tickets.as_view()),
+    path('tickets/<int:arg>', Tickets.as_view()),
+
     path('user/<int:arg>', user),
     
     path('users', users),

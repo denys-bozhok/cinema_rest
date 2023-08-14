@@ -26,6 +26,6 @@ class Ticket(models.Model):
 
 
 class Place(models.Model):
-    ticket_id = models.ForeignKey('Ticket', on_delete=models.CASCADE)
-    number = models.IntegerField(unique=True, validators=[MaxValueValidator(20), MinValueValidator(0)])
+    ticket_id = models.ForeignKey('Ticket', on_delete=models.PROTECT)
+    number = models.IntegerField(validators=[MaxValueValidator(20), MinValueValidator(0)])
     
